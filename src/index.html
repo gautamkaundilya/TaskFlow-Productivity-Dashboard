@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TaskFlow — Smart To-Do Dashboard</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div id="app" class="app">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">TF</div>
+        <h1 class="app-name">TaskFlow</h1>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active">Dashboard</button>
+        <button class="nav-item">My Tasks</button>
+        <button class="nav-item">Today</button>
+        <button class="nav-item">Upcoming</button>
+        <button class="nav-item">Completed</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <h4>Filters</h4>
+        <label><input type="checkbox" /> High Priority</label>
+        <label><input type="checkbox" /> Timer Running</label>
+        <button class="btn small">Toggle Theme</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-area">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebar-toggle" class="icon-btn">☰</button>
+          <div class="search">
+            <input type="search" placeholder="Search tasks..." />
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="icon-btn">🔔</button>
+          <button class="avatar">G</button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="content">
+
+        <!-- Column A -->
+        <section class="col col-stats">
+          <div class="card">
+            <h3>Quick Add</h3>
+            <form id="quick-add" class="quick-add" onsubmit="return false;">
+              <input id="q-title" type="text" placeholder="Task title" />
+              <select id="q-category">
+                <option>Work</option>
+                <option>Study</option>
+                <option>Personal</option>
+              </select>
+              <button class="btn" type="submit">Add</button>
+            </form>
+          </div>
+
+          <div class="card stats">
+            <h3>Stats</h3>
+            <ul>
+              <li>Total: <strong id="stat-total">0</strong></li>
+              <li>Completed: <strong id="stat-completed">0</strong></li>
+              <li>Focus Streak: <strong id="stat-streak">0</strong></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Column B -->
+        <main class="col col-list">
+          <div class="toolbar card">
+            <select id="sort">
+              <option value="newest">Newest</option>
+              <option value="due">Due Date</option>
+              <option value="priority">Priority</option>
+            </select>
+          </div>
+
+          <div id="task-list" class="task-list">
+            <!-- Example Card -->
+            <article class="task-card card">
+              <div class="task-left">
+                <input type="checkbox" />
+                <div>
+                  <h4 class="task-title">Sample Task</h4>
+                  <p class="task-desc">Description here...</p>
+                </div>
+              </div>
+              <div class="task-right">
+                <span class="badge priority-medium">Medium</span>
+                <button class="icon-btn small">▶</button>
+                <button class="icon-btn small">✎</button>
+                <button class="icon-btn small">🗑</button>
+              </div>
+            </article>
+          </div>
+        </main>
+
+        <!-- Column C -->
+        <aside class="col col-detail">
+          <div class="card">
+            <h3>Task Details</h3>
+            <p id="detail-empty">Select a task to view details</p>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- Floating Add Button -->
+    <button id="fab" class="fab">＋</button>
+
+  </div>
+
+  <!-- JS Files -->
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
