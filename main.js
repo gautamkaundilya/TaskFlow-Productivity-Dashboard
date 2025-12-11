@@ -11,22 +11,59 @@ let currentSortType = 'newest';
 let currentSearchTerm = '';
 let filterHighPriority = false;
 let filterTimerRunning = false;
+let currentNavFilter = 'dashboard';
 
 // ============ Helper Functions ============
 const refreshUI = () => {
   let tasksToShow;
   
-  // Apply filters first
+  // First apply navigation filter
+  tasksToShow = Utils.getNavFilteredTasks(currentNavFilter);
+  
+  // Then apply additional filters
   if (filterHighPriority || filterTimerRunning) {
-    tasksToShow = Utils.applyFilters(filterHighPriority, filterTimerRunning);
+    if (filterHighPriority) {
+      tasksToShow = tasksToShow.filter(t => t.priority === 'High');
+    }
+    if (filterTimerRunning) {
+      tasksToShow = tasksToShow.filter(t => t.timerRunning);
+    }
   } else if (currentSearchTerm) {
-    tasksToShow = Utils.applySearch(currentSearchTerm, currentSortType);
+    const searchTerm = currentSearchTerm.toLowerCase();
+    tasksToShow = tasksToShow.filter(task => 
+      task.title.toLowerCase().includes(searchTerm) ||
+      task.description.toLowerCase().includes(searchTerm)
+    );
   } else {
-    tasksToShow = Utils.applySorting(currentSortType);
+    // Apply sorting
+    tasksToShow = sortTasksArray(tasksToShow, currentSortType);
   }
   
   UI.renderTasks(tasksToShow, handleTaskAction);
   UI.updateStats();
+};
+
+const sortTasksArray = (tasks, sortType) => {
+  const sorted = [...tasks];
+  
+  switch(sortType) {
+    case 'newest':
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      break;
+    case 'due':
+      sorted.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+      break;
+    case 'priority':
+      const priorityOrder = { High: 0, Medium: 1, Low: 2 };
+      sorted.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      break;
+  }
+  
+  return sorted;
 };
 
 const handleTaskAction = (action, taskId) => {
@@ -52,6 +89,9 @@ const handleTaskAction = (action, taskId) => {
 // ============ Event Listeners Setup ============
 const setupEventListeners = () => {
   const elements = UI.getElements();
+  
+  // Setup detail panel actions
+  Handlers.setupDetailActions(refreshUI);
   
   // Quick Add Form
   elements.quickAddForm.addEventListener('submit', (e) => {
@@ -88,35 +128,83 @@ const setupEventListeners = () => {
     elements.sidebar.classList.toggle('show');
   });
   
-  // Theme toggle
-  document.querySelector('.sidebar-footer .btn.small').addEventListener('click', () => {
-    const newTheme = Utils.toggleTheme();
-    Storage.saveTheme(newTheme);
+  // Close sidebar when clicking outside (mobile)
+  document.addEventListener('click', (e) => {
+    const sidebar = elements.sidebar;
+    const toggle = elements.sidebarToggle;
+    
+    if (window.innerWidth <= 768 && 
+        sidebar.classList.contains('show') && 
+        !sidebar.contains(e.target) && 
+        !toggle.contains(e.target)) {
+      sidebar.classList.remove('show');
+    }
   });
+  
+  // Theme toggle
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const newTheme = Utils.toggleTheme();
+      Storage.saveTheme(newTheme);
+    });
+  }
   
   // Filter checkboxes
-  const filterCheckboxes = document.querySelectorAll('.sidebar-footer input[type="checkbox"]');
-  filterCheckboxes[0].addEventListener('change', (e) => {
-    filterHighPriority = e.target.checked;
-    refreshUI();
-  });
+  const filterPriority = document.getElementById('filter-priority');
+  const filterTimer = document.getElementById('filter-timer');
   
-  filterCheckboxes[1].addEventListener('change', (e) => {
-    filterTimerRunning = e.target.checked;
-    refreshUI();
+  if (filterPriority) {
+    filterPriority.addEventListener('change', (e) => {
+      filterHighPriority = e.target.checked;
+      refreshUI();
+    });
+  }
+  
+  if (filterTimer) {
+    filterTimer.addEventListener('change', (e) => {
+      filterTimerRunning = e.target.checked;
+      refreshUI();
+    });
+  }
+  
+  // Navigation buttons
+  const navButtons = document.querySelectorAll('.nav-item');
+  navButtons.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      // Remove active class from all
+      navButtons.forEach(b => b.classList.remove('active'));
+      // Add active to clicked
+      btn.classList.add('active');
+      
+      // Set current filter
+      const navFilters = ['dashboard', 'my-tasks', 'today', 'upcoming', 'completed'];
+      currentNavFilter = navFilters[index];
+      
+      // Reset other filters
+      currentSearchTerm = '';
+      filterHighPriority = false;
+      filterTimerRunning = false;
+      if (filterPriority) filterPriority.checked = false;
+      if (filterTimer) filterTimer.checked = false;
+      if (elements.searchInput) elements.searchInput.value = '';
+      
+      refreshUI();
+      
+      // Close sidebar on mobile
+      if (window.innerWidth <= 768) {
+        elements.sidebar.classList.remove('show');
+      }
+    });
   });
 };
 
 // ============ App Initialization ============
 const init = () => {
-  // Load saved theme
   const savedTheme = Storage.loadTheme();
   Utils.setTheme(savedTheme);
   
-  // Setup event listeners
   setupEventListeners();
-  
-  // Initial render
   refreshUI();
 };
 

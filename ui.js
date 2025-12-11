@@ -7,7 +7,7 @@ const elements = {
   qTitle: document.getElementById('q-title'),
   qCategory: document.getElementById('q-category'),
   sortSelect: document.getElementById('sort'),
-  searchInput: document.querySelector('.search input'),
+  searchInput: document.getElementById('search-input'),
   statTotal: document.getElementById('stat-total'),
   statCompleted: document.getElementById('stat-completed'),
   statStreak: document.getElementById('stat-streak'),
@@ -43,45 +43,56 @@ export const createTaskElement = (task, onAction) => {
   div.dataset.id = task.id;
   
   div.innerHTML = `
-    <div class="task-header">
-      <div>
-        <div class="task-title">${escapeHtml(task.title)}</div>
+    <input 
+      type="radio" 
+      class="task-radio" 
+      ${task.completed ? 'checked' : ''}
+    />
+    <div class="task-content">
+      <span class="task-title">${escapeHtml(task.title)}</span>
+      <div class="task-badges">
         <span class="task-category ${task.category}">${task.category}</span>
         <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+        ${task.timerSeconds > 0 ? `<span class="task-timer-badge">⏱ ${formatTime(task.timerSeconds)}</span>` : ''}
       </div>
     </div>
-    <div class="task-meta">
-      ${task.dueDate ? `<span>📅 ${formatDate(task.dueDate)}</span>` : ''}
-      <span>⏱️ ${formatTime(task.timerSeconds)}</span>
-    </div>
-    ${task.timerSeconds > 0 || task.timerRunning ? `
-      <div class="task-timer">
-        <span class="timer-display">${formatTime(task.timerSeconds)}</span>
-      </div>
-    ` : ''}
     <div class="task-actions">
-      <button class="btn-timer ${task.timerRunning ? 'running' : ''}" data-action="timer">
-        ${task.timerRunning ? '⏸ Pause' : '▶ Start'}
+      <button class="task-action-btn ${task.timerRunning ? 'timer-running' : ''}" 
+              title="${task.timerRunning ? 'Pause Timer' : 'Start Timer'}">
+        ${task.timerRunning ? '⏸' : '▶'}
       </button>
-      <button class="btn-complete" data-action="complete">
-        ${task.completed ? '↩ Undo' : '✓ Done'}
-      </button>
-      <button class="btn-edit" data-action="edit">✏ Edit</button>
-      <button class="btn-delete" data-action="delete">🗑 Delete</button>
+      <button class="task-action-btn" title="Edit Task">✏</button>
+      <button class="task-action-btn" title="Delete Task">🗑</button>
     </div>
   `;
   
-  // Event delegation for task actions
-  div.addEventListener('click', (e) => {
-    const action = e.target.dataset.action;
-    if (!action) {
-      // Select task for detail view
-      if (onAction) onAction('select', task.id);
-      return;
-    }
-    
+  // Radio button event
+  const radio = div.querySelector('.task-radio');
+  radio.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (onAction) onAction(action, task.id);
+    onAction('complete', task.id);
+  });
+  
+  // Task content click (select)
+  const content = div.querySelector('.task-content');
+  content.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onAction('select', task.id);
+  });
+  
+  // Action buttons
+  const actionBtns = div.querySelectorAll('.task-action-btn');
+  actionBtns[0].addEventListener('click', (e) => {
+    e.stopPropagation();
+    onAction('timer', task.id);
+  });
+  actionBtns[1].addEventListener('click', (e) => {
+    e.stopPropagation();
+    onAction('edit', task.id);
+  });
+  actionBtns[2].addEventListener('click', (e) => {
+    e.stopPropagation();
+    onAction('delete', task.id);
   });
   
   return div;
@@ -114,14 +125,43 @@ export const updateTaskTimer = (taskId) => {
   
   const taskEl = elements.taskList.querySelector(`[data-id="${taskId}"]`);
   if (taskEl) {
-    const timerDisplay = taskEl.querySelector('.timer-display');
-    if (timerDisplay) {
-      timerDisplay.textContent = formatTime(task.timerSeconds);
+    const timerBadge = taskEl.querySelector('.task-timer-badge');
+    if (timerBadge) {
+      timerBadge.textContent = `⏱ ${formatTime(task.timerSeconds)}`;
+    } else if (task.timerSeconds > 0) {
+      const badges = taskEl.querySelector('.task-badges');
+      if (badges) {
+        const newBadge = document.createElement('span');
+        newBadge.className = 'task-timer-badge';
+        newBadge.textContent = `⏱ ${formatTime(task.timerSeconds)}`;
+        badges.appendChild(newBadge);
+      }
     }
-    const metaTimer = taskEl.querySelector('.task-meta span:last-child');
-    if (metaTimer) {
-      metaTimer.textContent = `⏱️ ${formatTime(task.timerSeconds)}`;
+    
+    const timerBtn = taskEl.querySelectorAll('.task-action-btn')[0];
+    if (timerBtn) {
+      timerBtn.textContent = task.timerRunning ? '⏸' : '▶';
+      timerBtn.title = task.timerRunning ? 'Pause Timer' : 'Start Timer';
+      if (task.timerRunning) {
+        timerBtn.classList.add('timer-running');
+      } else {
+        timerBtn.classList.remove('timer-running');
+      }
     }
+  }
+  
+  if (TaskManager.getSelectedTask() === taskId) {
+    updateTaskDetailTimer(taskId);
+  }
+};
+
+const updateTaskDetailTimer = (taskId) => {
+  const task = TaskManager.getTask(taskId);
+  if (!task) return;
+  
+  const timerValue = document.querySelector('.detail-timer-value');
+  if (timerValue) {
+    timerValue.textContent = formatTime(task.timerSeconds);
   }
 };
 
@@ -132,13 +172,11 @@ export const updateStats = () => {
   elements.statTotal.textContent = tasks.length;
   elements.statCompleted.textContent = completed;
   
-  // Calculate focus streak (consecutive days with completed tasks)
   const streak = calculateStreak(tasks);
   elements.statStreak.textContent = streak;
 };
 
 const calculateStreak = (tasks) => {
-  // Simple implementation - count tasks completed in last 7 days
   const now = new Date();
   const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
   return tasks.filter(t => 
@@ -148,7 +186,94 @@ const calculateStreak = (tasks) => {
 
 export const selectTask = (taskId) => {
   TaskManager.setSelectedTask(taskId);
-  showTaskDetail(taskId);
+  
+  // Check if mobile view
+  if (window.innerWidth <= 768) {
+    showMobileTaskDetail(taskId);
+  } else {
+    showTaskDetail(taskId);
+  }
+};
+
+export const showMobileTaskDetail = (taskId) => {
+  const task = TaskManager.getTask(taskId);
+  if (!task) return;
+  
+  // Create or get modal
+  let modal = document.getElementById('mobile-detail-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'mobile-detail-modal';
+    modal.className = 'mobile-detail-modal';
+    document.body.appendChild(modal);
+  }
+  
+  modal.innerHTML = `
+    <div class="mobile-detail-content">
+      <div class="mobile-detail-header">
+        <h3>Task Details</h3>
+        <button class="mobile-detail-close" id="mobile-detail-close">×</button>
+      </div>
+      <div class="detail-content">
+        <div class="detail-row">
+          <span class="detail-label">Title</span>
+          <span class="detail-value">${escapeHtml(task.title)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Category</span>
+          <span class="detail-value">${task.category}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Priority</span>
+          <span class="detail-value priority-badge priority-${task.priority}">${task.priority}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">${task.completed ? '✓ Completed' : '⏳ Active'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Time Tracked</span>
+          <span class="detail-value detail-timer-value">${formatTime(task.timerSeconds)}</span>
+        </div>
+        ${task.dueDate ? `
+          <div class="detail-row">
+            <span class="detail-label">Due Date</span>
+            <span class="detail-value">${formatDate(task.dueDate)}</span>
+          </div>
+        ` : ''}
+        ${task.description ? `
+          <div class="detail-row">
+            <span class="detail-label">Description</span>
+            <span class="detail-value">${escapeHtml(task.description)}</span>
+          </div>
+        ` : ''}
+        <div class="detail-actions">
+          <button class="btn-detail-edit">✏ Edit</button>
+          <button class="btn-detail-delete">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  modal.classList.add('show');
+  
+  // Close button event
+  const closeBtn = document.getElementById('mobile-detail-close');
+  closeBtn.addEventListener('click', closeMobileDetail);
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeMobileDetail();
+    }
+  });
+};
+
+export const closeMobileDetail = () => {
+  const modal = document.getElementById('mobile-detail-modal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
 };
 
 export const showTaskDetail = (taskId) => {
@@ -182,7 +307,7 @@ export const showTaskDetail = (taskId) => {
     </div>
     <div class="detail-row">
       <span class="detail-label">Time Tracked</span>
-      <span class="detail-value">${formatTime(task.timerSeconds)}</span>
+      <span class="detail-value detail-timer-value">${formatTime(task.timerSeconds)}</span>
     </div>
     ${task.dueDate ? `
       <div class="detail-row">
@@ -196,6 +321,10 @@ export const showTaskDetail = (taskId) => {
         <span class="detail-value">${escapeHtml(task.description)}</span>
       </div>
     ` : ''}
+    <div class="detail-actions">
+      <button class="btn-detail-edit">✏ Edit</button>
+      <button class="btn-detail-delete">🗑 Delete</button>
+    </div>
   `;
   
   detailCard.appendChild(detailDiv);

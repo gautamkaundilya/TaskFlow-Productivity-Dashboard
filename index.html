@@ -3,10 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TaskFlow — Smart To-Do Dashboard</title>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href=" style.css" />
+  <title>TaskFlow – Smart To-Do Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
@@ -29,9 +27,9 @@
 
       <div class="sidebar-footer">
         <h4>Filters</h4>
-        <label><input type="checkbox" /> High Priority</label>
-        <label><input type="checkbox" /> Timer Running</label>
-        <button class="btn small">Toggle Theme</button>
+        <label><input type="checkbox" id="filter-priority" /> High Priority</label>
+        <label><input type="checkbox" id="filter-timer" /> Timer Running</label>
+        <button class="btn small" id="theme-toggle">Toggle Theme</button>
       </div>
     </aside>
 
@@ -43,7 +41,7 @@
         <div class="header-left">
           <button id="sidebar-toggle" class="icon-btn">☰</button>
           <div class="search">
-            <input type="search" placeholder="Search tasks..." />
+            <input type="search" id="search-input" placeholder="Search tasks..." />
           </div>
         </div>
 
@@ -60,8 +58,8 @@
         <section class="col col-stats">
           <div class="card">
             <h3>Quick Add</h3>
-            <form id="quick-add" class="quick-add" onsubmit="return false;">
-              <input id="q-title" type="text" placeholder="Task title" />
+            <form id="quick-add" class="quick-add">
+              <input id="q-title" type="text" placeholder="Task title" required />
               <select id="q-category">
                 <option>Work</option>
                 <option>Study</option>
@@ -91,24 +89,7 @@
             </select>
           </div>
 
-          <div id="task-list" class="task-list">
-            <!-- Example Card -->
-            <article class="task-card card">
-              <div class="task-left">
-                <input type="checkbox" />
-                <div>
-                  <h4 class="task-title">Sample Task</h4>
-                  <p class="task-desc">Description here...</p>
-                </div>
-              </div>
-              <div class="task-right">
-                <span class="badge priority-medium">Medium</span>
-                <button class="icon-btn small">▶</button>
-                <button class="icon-btn small">✎</button>
-                <button class="icon-btn small">🗑</button>
-              </div>
-            </article>
-          </div>
+          <div id="task-list" class="task-list"></div>
         </main>
 
         <!-- Column C -->
@@ -127,7 +108,6 @@
 
   </div>
 
-  <!-- JS Files -->
   <script type="module" src="main.js"></script>
 </body>
 </html>

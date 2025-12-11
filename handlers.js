@@ -23,7 +23,6 @@ export const completeTask = (taskId, onUpdate) => {
   
   if (onUpdate) onUpdate();
   
-  // Update detail view if this task is selected
   if (TaskManager.getSelectedTask() === taskId) {
     UI.selectTask(taskId);
   }
@@ -42,7 +41,6 @@ export const deleteTask = (taskId, onUpdate) => {
     
     if (onUpdate) onUpdate();
     
-    // Clear detail view if deleted task was selected
     if (TaskManager.getSelectedTask() === taskId) {
       TaskManager.setSelectedTask(null);
       UI.clearTaskDetail();
@@ -53,4 +51,28 @@ export const deleteTask = (taskId, onUpdate) => {
 export const selectTask = (taskId, onUpdate) => {
   UI.selectTask(taskId);
   if (onUpdate) onUpdate();
+};
+
+export const setupDetailActions = (onUpdate) => {
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-detail-edit')) {
+      const selectedId = TaskManager.getSelectedTask();
+      if (selectedId) {
+        editTask(selectedId, onUpdate);
+        // Close mobile detail if open
+        if (window.innerWidth <= 768) {
+          UI.closeMobileDetail();
+        }
+      }
+    } else if (e.target.classList.contains('btn-detail-delete')) {
+      const selectedId = TaskManager.getSelectedTask();
+      if (selectedId) {
+        deleteTask(selectedId, onUpdate);
+        // Close mobile detail if open
+        if (window.innerWidth <= 768) {
+          UI.closeMobileDetail();
+        }
+      }
+    }
+  });
 };

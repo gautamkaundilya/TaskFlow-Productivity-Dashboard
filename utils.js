@@ -55,6 +55,40 @@ export const applyFilters = (highPriority, timerRunning) => {
   return filtered;
 };
 
+// Navigation Filters
+export const getNavFilteredTasks = (navType) => {
+  const tasks = TaskManager.getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  switch(navType) {
+    case 'dashboard':
+      return tasks;
+    case 'my-tasks':
+      return tasks.filter(t => !t.completed);
+    case 'today':
+      return tasks.filter(t => {
+        if (!t.dueDate) return false;
+        const dueDate = new Date(t.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate.getTime() === today.getTime();
+      });
+    case 'upcoming':
+      return tasks.filter(t => {
+        if (!t.dueDate) return false;
+        const dueDate = new Date(t.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate.getTime() > today.getTime();
+      });
+    case 'completed':
+      return tasks.filter(t => t.completed);
+    default:
+      return tasks;
+  }
+};
+
 // Theme Functions
 export const toggleTheme = () => {
   const currentTheme = document.documentElement.getAttribute('data-theme');
